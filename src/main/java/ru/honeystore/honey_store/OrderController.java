@@ -62,14 +62,11 @@ public class OrderController {
             @PathVariable("id") Long id
     ) {
         log.info("Called deleteOrder: id={}", id);
-        try {  //Exeptoin Hadnler
-            orderService.canselOrder(id);
-            return ResponseEntity.ok()
+
+        orderService.canselOrder(id);
+
+        return ResponseEntity.ok()
                     .build();
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .build();
-        }
     }
 
     @PostMapping("/{id}/approve")

@@ -34,7 +34,7 @@ public class OrderController {
     public ResponseEntity<List<OrderDTO>> getAllOrders() {
         log.info("Called getAllOrders");
         return ResponseEntity.status(HttpStatus.OK)
-                .body(orderService.findAllOrders());
+                .body(orderService.getAllOrders());
     }
 
     @PostMapping
@@ -47,29 +47,39 @@ public class OrderController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OrderDTO> editOrder(
+    public ResponseEntity<OrderDTO> updateOrder(
             @PathVariable("id") Long id,
             @RequestBody OrderDTO orderDTOToEdit
     ) {
         log.info("Called editOrder: id={}, orderToEdit={}", id, orderDTOToEdit);
-        OrderDTO editedOrderDTO = orderService.editOrder(id, orderDTOToEdit);
+        OrderDTO editedOrderDTO = orderService.updateOrder(id, orderDTOToEdit);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(editedOrderDTO);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder( //Exeptoin Hadnler
+    @DeleteMapping("/{id}/cansel")
+    public ResponseEntity<Void> deleteOrder(
             @PathVariable("id") Long id
     ) {
         log.info("Called deleteOrder: id={}", id);
-        try {
-            orderService.deleteOrder(id);
+        try {  //Exeptoin Hadnler
+            orderService.canselOrder(id);
             return ResponseEntity.ok()
                     .build();
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .build();
         }
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<Void> approvedOrder(
+            @PathVariable("id") Long id
+    ) {
+        log.info("Called approvedOrder");
+        orderService.approveOrder(id);
+        return ResponseEntity.ok()
+                .build();
     }
 
 }

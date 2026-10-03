@@ -1,36 +1,39 @@
 package ru.honeystore.honey_store;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 // lombok
 public class OrderService {
 
-    private final Map<Long, OrderDTO> orderMap;
-    private final AtomicLong idCounter;
+    private final OrderRepository repository;
 
-    public OrderService() {
-        orderMap = new HashMap<>();
-        idCounter = new AtomicLong();
+    public OrderService(OrderRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<OrderDTO> getAllOrders() {
+        List<OrderEntity> orderEntities = repository.findAll();
+
+        return orderEntities.stream()
+                .map(this::toDomainOrder)
+                .toList();
     }
 
     public OrderDTO getOrderById(
             Long id
     ) {
-        if (!orderMap.containsKey(id)) {
-            throw new NoSuchElementException("Not found order by id: " + id);
-        }
-        return orderMap.get(id);
-    }
+        OrderEntity orderEntity = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Not found order by id: " + id
+                ));
 
-    public List<OrderDTO> findAllOrders() {
-        return orderMap.values().stream().toList();
+        return toDomainOrder(orderEntity);
     }
 
     public OrderDTO createOrder(
@@ -44,50 +47,83 @@ public class OrderService {
             throw new IllegalArgumentException("Status should be empty");
         }
 
-        OrderDTO newOrderDTO = new OrderDTO(
-                idCounter.incrementAndGet(),
+        OrderEntity orderToSave = new OrderEntity(
+                null,
                 orderDTOToCreate.userId(),
                 orderDTOToCreate.startDate(),
                 orderDTOToCreate.endDate(),
                 OrderStatus.PENDING
         );
 
-        orderMap.put(newOrderDTO.id(), newOrderDTO);
+        OrderEntity savedOrder = repository.save(orderToSave);
 
-        return newOrderDTO;
+        return toDomainOrder(savedOrder);
     }
 
-    public OrderDTO editOrder(
+    public OrderDTO updateOrder(
             Long id,
-            OrderDTO editOrderDTO
+            OrderDTO orderToUpdate
     ) {
-        OrderDTO order = orderMap.get(id);
-        if (!orderMap.containsKey(id)) {
-            throw new NoSuchElementException("Not found order by id: " + id);
+
+        OrderEntity orderEntity = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Not found order by id: " + id
+                ));
+
+        if (orderEntity.getStatus() != OrderStatus.PENDING) {
+            throw new NoSuchElementException("Can't edit order with status: " + orderEntity.getStatus());
         }
-        if (order.status() != OrderStatus.PENDING) {
-            throw new NoSuchElementException("Can't edit order with status: " + order.status());
-        }
 
-        OrderDTO editedOrderDTO = new OrderDTO(
-                id,
-                editOrderDTO.userId(),
-                editOrderDTO.startDate(),
-                editOrderDTO.endDate(),
-                orderMap.get(id).status()
-                );
+        var orderToSave = new OrderEntity(
+                orderEntity.getId(),
+                orderToUpdate.userId(),
+                orderToUpdate.startDate(),
+                orderToUpdate.endDate(),
+                OrderStatus.PENDING
+        );
 
-        orderMap.put(order.id(), editedOrderDTO);
+        var updatedOrder = repository.save(orderToSave);
 
-        return editedOrderDTO;
+        return toDomainOrder(updatedOrder);
     }
 
-    public void deleteOrder(
+    @Transactional
+    public void canselOrder(
             Long id
     ) {
-        if (!orderMap.containsKey(id)) {
-            throw new NoSuchElementException("Not found order by id: " + id);
+        if (!repository.existsById(id)) {
+            throw new EntityNotFoundException("Not found order by id: " + id);
         }
-        orderMap.remove(id);
+
+        repository.setStatus(id, OrderStatus.CANCELLED);
     }
+
+    public void approveOrder(
+            Long id
+    ) {
+        OrderEntity orderEntity = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Not found order by id: " + id
+                ));
+
+        if (orderEntity.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Cannot approve order: status=" + orderEntity.getStatus()
+            );
+        }
+
+        orderEntity.setStatus(OrderStatus.APPROVED);
+        repository.save(orderEntity);
+    }
+
+    private OrderDTO toDomainOrder(OrderEntity orderEntity) {
+        return new OrderDTO(
+                orderEntity.getId(),
+                orderEntity.getUserId(),
+                orderEntity.getStartDate(),
+                orderEntity.getEndDate(),
+                orderEntity.getStatus()
+        );
+    }
+
 }

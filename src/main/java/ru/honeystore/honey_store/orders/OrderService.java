@@ -12,15 +12,21 @@ public class OrderService {
 
     private final OrderRepository repository;
 
-    public OrderService(OrderRepository repository) {
+    private final OrderMapper mapper;
+
+    public OrderService(
+            OrderRepository repository,
+            OrderMapper mapper
+    ) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     public List<OrderDTO> getAllOrders() {
         List<OrderEntity> orderEntities = repository.findAll();
 
         return orderEntities.stream()
-                .map(this::toDomainOrder)
+                .map(mapper::toDomain)
                 .toList();
     }
 
@@ -32,7 +38,7 @@ public class OrderService {
                         "Not found order by id: " + id
                 ));
 
-        return toDomainOrder(orderEntity);
+        return mapper.toDomain(orderEntity);
     }
 
     public OrderDTO createOrder(
@@ -45,17 +51,12 @@ public class OrderService {
             throw new IllegalArgumentException("End date should be after start date");
         }
 
-        OrderEntity orderToSave = new OrderEntity(
-                null,
-                orderDTOToCreate.userId(),
-                orderDTOToCreate.startDate(),
-                orderDTOToCreate.endDate(),
-                OrderStatus.PENDING
-        );
+        var orderToSave = mapper.toEntity(orderDTOToCreate);
+        orderToSave.setStatus(OrderStatus.PENDING);
 
         OrderEntity savedOrder = repository.save(orderToSave);
 
-        return toDomainOrder(savedOrder);
+        return mapper.toDomain(savedOrder);
     }
 
     public OrderDTO updateOrder(
@@ -75,17 +76,14 @@ public class OrderService {
             throw new IllegalArgumentException("End date should be after start date");
         }
 
-        var orderToSave = new OrderEntity(
-                orderEntity.getId(),
-                orderToUpdate.userId(),
-                orderToUpdate.startDate(),
-                orderToUpdate.endDate(),
-                OrderStatus.PENDING
-        );
+        var orderToSave = mapper.toEntity(orderToUpdate);
+
+        orderToSave.setId(orderEntity.getId());
+        orderToSave.setStatus(OrderStatus.PENDING);
 
         var updatedOrder = repository.save(orderToSave);
 
-        return toDomainOrder(updatedOrder);
+        return mapper.toDomain(updatedOrder);
     }
 
     @Transactional
@@ -118,16 +116,6 @@ public class OrderService {
 
         orderEntity.setStatus(OrderStatus.APPROVED);
         repository.save(orderEntity);
-    }
-
-    private OrderDTO toDomainOrder(OrderEntity orderEntity) {
-        return new OrderDTO(
-                orderEntity.getId(),
-                orderEntity.getUserId(),
-                orderEntity.getStartDate(),
-                orderEntity.getEndDate(),
-                orderEntity.getStatus()
-        );
     }
 
 }

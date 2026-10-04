@@ -1,4 +1,4 @@
-package ru.honeystore.honey_store;
+package ru.honeystore.honey_store.orders;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

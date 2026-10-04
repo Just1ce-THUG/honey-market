@@ -1,5 +1,6 @@
-package ru.honeystore.honey_store;
+package ru.honeystore.honey_store.orders;
 
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -7,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/order")
@@ -39,7 +39,7 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderDTO> createOrder(
-            @RequestBody OrderDTO orderDTOToCreate
+            @RequestBody @Valid OrderDTO orderDTOToCreate
     ) {
         log.info("Called createOrder");
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -49,7 +49,7 @@ public class OrderController {
     @PutMapping("/{id}")
     public ResponseEntity<OrderDTO> updateOrder(
             @PathVariable("id") Long id,
-            @RequestBody OrderDTO orderDTOToEdit
+            @RequestBody @Valid OrderDTO orderDTOToEdit
     ) {
         log.info("Called editOrder: id={}, orderToEdit={}", id, orderDTOToEdit);
         OrderDTO editedOrderDTO = orderService.updateOrder(id, orderDTOToEdit);

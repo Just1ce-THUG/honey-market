@@ -1,4 +1,4 @@
-package ru.honeystore.honey_store;
+package ru.honeystore.honey_store.orders;
 
 import jakarta.persistence.*;
 
@@ -12,17 +12,17 @@ public class OrderEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "start_date")
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", nullable = false)
     private OrderStatus status;
 
     public OrderEntity(){

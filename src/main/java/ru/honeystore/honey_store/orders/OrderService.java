@@ -1,11 +1,10 @@
-package ru.honeystore.honey_store;
+package ru.honeystore.honey_store.orders;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 // lombok
@@ -39,12 +38,11 @@ public class OrderService {
     public OrderDTO createOrder(
             OrderDTO orderDTOToCreate
     ) {
-        if (orderDTOToCreate.id() != null) {
-            throw new IllegalArgumentException("Id should be empty");
-        }
-
         if (orderDTOToCreate.status() != null) {
             throw new IllegalArgumentException("Status should be empty");
+        }
+        if (!orderDTOToCreate.endDate().isAfter(orderDTOToCreate.startDate())) {
+            throw new IllegalArgumentException("End date should be after start date");
         }
 
         OrderEntity orderToSave = new OrderEntity(
@@ -70,8 +68,11 @@ public class OrderService {
                         "Not found order by id: " + id
                 ));
 
-        if (orderEntity.getStatus() != OrderStatus.PENDING) {
-            throw new NoSuchElementException("Can't edit order with status: " + orderEntity.getStatus());
+        if (!orderEntity.getStatus().equals(OrderStatus.PENDING)) {
+            throw new IllegalStateException("Can't edit order with status: " + orderEntity.getStatus());
+        }
+        if (!orderToUpdate.endDate().isAfter(orderToUpdate.startDate())) {
+            throw new IllegalArgumentException("End date should be after start date");
         }
 
         var orderToSave = new OrderEntity(
@@ -91,8 +92,11 @@ public class OrderService {
     public void canselOrder(
             Long id
     ) {
-        if (!repository.existsById(id)) {
-            throw new EntityNotFoundException("Not found order by id: " + id);
+        var order = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Not found order by id:" + id));
+
+        if (order.getStatus().equals(OrderStatus.CANCELLED)) {
+            throw new IllegalStateException("Order is already cancelled");
         }
 
         repository.setStatus(id, OrderStatus.CANCELLED);

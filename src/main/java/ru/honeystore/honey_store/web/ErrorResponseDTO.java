@@ -1,4 +1,4 @@
-package ru.honeystore.honey_store;
+package ru.honeystore.honey_store.web;
 
 import java.time.LocalDateTime;
 
